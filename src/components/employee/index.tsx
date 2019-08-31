@@ -1,40 +1,115 @@
 import React, { Component } from 'react'
-import { employeeColumns } from './columns';
-import { EmployeeResponse } from '../../interface/employee';
-import { Table } from 'antd'
-import QueryForm from './QueryForm'
+import { bindActionCreators, Dispatch } from 'redux'
+import { connect } from 'react-redux'
 
-interface State {
-    employee: EmployeeResponse
+import getColunms from './columns';
+import { EmployeeResponse, EmployeeInfo, EmployeeRequest, CreateRequest, DeleteRequest, UpdateRequest } from '../../interface/employee';
+import { Table, Button } from 'antd'
+import QueryForm from './QueryForm'
+import InfoModal from './InfoModal';
+import {
+    getEmployee,
+    createEmployee,
+    deleteEmployee,
+    updateEmployee
+} from '../../redux/employee'
+
+interface Props {
+    onGetEmployee(param: EmployeeRequest, callback: () => void): void;
+    onCreateEmployee(param: CreateRequest, callback: () => void): void;
+    onDeleteEmployee(param: DeleteRequest): void;
+    onUpdateEmployee(param: UpdateRequest, callback: () => void): void;
+    employeeList: EmployeeResponse
 }
 
-class Employee extends Component<{}, State> {
+interface State {
+    loading: boolean;
+    showModal: boolean;
+    edit: boolean;
+    rowData: Partial<EmployeeInfo>;
+}
+
+class Employee extends Component<Props, State> {
     state: State = {
-        employee: undefined
+        loading: false,
+        showModal: false,
+        edit: false,
+        rowData: {}
     }
-    setEmployee = (employee: EmployeeResponse) => {
+    setLoading = (loading: boolean) => {
         this.setState({
-            employee
+            loading
+        })
+    }
+    hideModal = () => {
+        this.setState({
+            showModal: false,
+            rowData: {}
+        })
+    }
+    handleCreate = () => {
+        this.setState({
+            showModal: true,
+            edit: false,
+            rowData: {}
         });
     }
-    getTotal() {
-        let total: number;
-        if (typeof this.state.employee !== 'undefined') {
-            total = this.state.employee.length
-        } else {
-            total = 0
-        }
-        return <p>共 {total} 名员工</p>
+    handleDelete = (param: DeleteRequest) => {
+        this.props.onDeleteEmployee(param)
+    }
+    handleUpdate = (record: EmployeeInfo) => {
+        this.setState({
+            showModal: true,
+            edit: true,
+            rowData: record
+        });
     }
     render() {
+        const {
+            employeeList,
+            onGetEmployee,
+            onCreateEmployee,
+            onUpdateEmployee
+        } = this.props
         return (
             <>
-                <QueryForm onDataChange={this.setEmployee} />
-                {/* {this.getTotal()} */}
-                <Table columns={employeeColumns} dataSource={this.state.employee} className="table" />
+                <QueryForm getData={onGetEmployee} setLoading={this.setLoading} />
+                <div className="toolbar">
+                    <Button type="primary" icon="plus" onClick={this.handleCreate}>添加新员工</Button>
+                    <Button type="primary" icon="download" className="right">导出</Button>
+                </div>
+                <InfoModal
+                    visible={this.state.showModal}
+                    edit={this.state.edit}
+                    rowData={this.state.rowData}
+                    hide={this.hideModal}
+                    createData={onCreateEmployee}
+                    updateData={onUpdateEmployee}
+                />
+                <Table
+                    columns={getColunms(this.handleUpdate, this.handleDelete)}
+                    dataSource={employeeList}
+                    loading={this.state.loading}
+                    className="table"
+                    pagination={false}
+                />
             </>
         )
     }
 }
 
-export default Employee;
+const mapStateToProps = (state: any) => ({
+    employeeList: state.employee.employeeList
+})
+
+const mapDispatchToProps = (dispatch: Dispatch) => bindActionCreators({
+    onGetEmployee: getEmployee,
+    onCreateEmployee: createEmployee,
+    onDeleteEmployee: deleteEmployee,
+    onUpdateEmployee: updateEmployee
+}, dispatch)
+
+export default connect(
+    mapStateToProps,
+    mapDispatchToProps
+)(Employee)
