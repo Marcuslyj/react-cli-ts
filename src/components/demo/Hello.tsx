@@ -20,7 +20,7 @@ const Hello = (props: Greeting) => <Button>Hello, {props.name}</Button>
 //     children
 // }) => <Button>Hello, {name}</Button>
 
-// 默认树形
+// 默认属性
 Hello.defaultProps = {
     firstName: '',
     lastName: ''
